@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Ziply — Prompt Generator</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+            background: #0e0e0e;
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 0;
+        }
+
+        /* ── TOP BAR ── */
+        .topbar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 18px 28px;
+            border-bottom: 1px solid #1e1e1e;
+        }
+        .topbar .brand-light { color: #666; font-size: 15px; font-weight: 400; }
+        .topbar .brand-bold  { color: #fff; font-size: 15px; font-weight: 600; }
+
+        /* ── MAIN LAYOUT ── */
+        .main {
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        /* ── TOP ROW: upload + actions ── */
+        .top-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .drop-zone {
+            flex: 1;
+            border: 1.5px dashed #333;
+            border-radius: 12px;
+            padding: 28px 32px;
+            cursor: pointer;
+            position: relative;
+            transition: border-color 0.2s, background 0.2s;
+            min-height: 90px;
+            display: flex;
+            align-items: center;
+        }
+        .drop-zone:hover, .drop-zone.drag-over {
+            border-color: #2979ff;
+            background: rgba(41,121,255,0.04);
+        }
+        .drop-zone input {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+        .drop-content {}
+        .drop-title {
+            color: #2979ff;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .drop-sub {
+            color: #888;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+        .file-loaded {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #555;
+        }
+        .file-loaded span {
+            color: #2979ff;
+            font-weight: 500;
+        }
+
+        .drop-types {
+            color: #555;
+            font-size: 12px;
+        }
+
+        /* ── ACTION BUTTONS ── */
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border-radius: 10px;
+            border: none;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.15s, transform 0.1s;
+            white-space: nowrap;
+            min-width: 160px;
+            text-align: center;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-blue { background: #2979ff; color: white; }
+        .btn-blue:hover { background: #1a6aff; }
+        .btn-gray { background: #2a2a2a; color: #aaa; }
+        .btn-gray:hover { background: #333; color: #ddd; }
+        .btn-gray:disabled { opacity: 0.4; cursor: default; }
+
+        /* ── DIVIDER ── */
+        .divider {
+            height: 1px;
+            background: #1e1e1e;
+            margin: 4px 0 24px;
+        }
+
+        /* ── RESULT PANEL ── */
+        .result-panel {
+            border: 1px solid #222;
+            border-radius: 14px;
+            overflow: hidden;
+            margin-bottom: 28px;
+        }
+        .result-label {
+            font-size: 11px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #555;
+            padding: 12px 18px;
+            border-bottom: 1px solid #1a1a1a;
+            background: #111;
+        }
+        .result-body {
+            background: #141414;
+            min-height: 320px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .checkerboard {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(45deg, #1c1c1c 25%, transparent 25%),
+                linear-gradient(-45deg, #1c1c1c 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #1c1c1c 75%),
+                linear-gradient(-45deg, transparent 75%, #1c1c1c 75%);
+            background-size: 18px 18px;
+            background-position: 0 0, 0 9px, 9px -9px, -9px 0px;
+            opacity: 0.5;
+        }
+        .result-placeholder {
+            color: #444;
+            font-size: 14px;
+            position: relative;
+            z-index: 1;
+        }
+        #output {
+            max-width: 100%;
+            max-height: 400px;
+            display: none;
+            position: relative;
+            z-index: 1;
+            padding: 20px;
+        }
+
+        /* ── SOGLIA ── */
+        .threshold-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        .threshold-row label { font-size: 12px; color: #555; white-space: nowrap; }
+        .threshold-row input[type=range] { flex: 1; accent-color: #2979ff; height: 3px; }
+        .threshold-val { font-size: 12px; color: #2979ff; width: 28px; text-align: right; }
+
+        #status {
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 16px;
+            min-height: 18px;
+        }
+
+        /* ── PROMPT SECTION ── */
+        .prompt-section {
+            border: 1px solid #222;
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        .prompt-header {
+            font-size: 11px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #555;
+            padding: 12px 18px;
+            border-bottom: 1px solid #1a1a1a;
+            background: #111;
+        }
+        .prompt-body {
+            padding: 20px;
+            background: #141414;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .field-group { display: flex; flex-direction: column; gap: 6px; }
+        .field-group label { font-size: 12px; color: #666; }
+        .field-opt { font-size: 11px; color: #333; margin-left: 4px; }
+
+        .field-group input[type=text] {
+            padding: 11px 14px;
+            background: #0e0e0e;
+            border: 1px solid #252525;
+            border-radius: 8px;
+            color: #ddd;
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .field-group input[type=text]:focus { border-color: #2979ff; }
+        .field-group input[type=text]::placeholder { color: #2e2e2e; }
+
+        .prompt-output-box {
+            background: #0e0e0e;
+            border: 1px solid #252525;
+            border-radius: 8px;
+            padding: 14px;
+            font-size: 13px;
+            line-height: 1.7;
+            color: #888;
+            display: none;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .prompt-output-box.visible { display: block; }
+
+        .prompt-actions {
+            display: none;
+            gap: 10px;
+        }
+        .prompt-actions.visible { display: flex; }
+        .btn-sm {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: none;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s, transform 0.1s;
+        }
+        .btn-sm:active { transform: scale(0.97); }
+        .btn-sm-blue { background: #2979ff; color: white; }
+        .btn-sm-blue:hover { background: #1a6aff; }
+        .btn-sm-gray { background: #222; color: #888; border: 1px solid #2a2a2a; }
+        .btn-sm-gray:hover { background: #2a2a2a; color: #ccc; }
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <span class="brand-light">Ziply</span>
+    <span class="brand-bold">Prompt Generator</span>
+</div>
+
+<div class="main">
+
+    <!-- TOP ROW -->
+    <div class="top-row">
+        <div class="drop-zone" id="dropZone">
+            <input type="file" id="fileInput" accept="image/*">
+            <div class="drop-content">
+                <div class="drop-title">Carica Immagine</div>
+                <div class="drop-sub">Drag and drop</div>
+                <div class="drop-types">PNG · JPG · WebP · GIF · BMP</div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-blue" onclick="processImage()">Converti</button>
+            <button class="btn btn-gray" id="btnReference" onclick="copyReference(this)" disabled>Copia Reference</button>
+        </div>
+    </div>
+
+    <div class="file-loaded" id="fileLoaded">
+        Immagine caricata — <span id="loadedName"></span>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- THRESHOLD + STATUS -->
+    <div class="threshold-row">
+        <label>Soglia</label>
+        <input type="range" id="thresholdSlider" min="10" max="245" value="128">
+        <span class="threshold-val" id="thresholdVal">128</span>
+    </div>
+    <div id="status"></div>
+
+    <!-- RESULT PANEL -->
+    <div class="result-panel">
+        <div class="result-label">Convertito</div>
+        <div class="result-body">
+            <div class="checkerboard"></div>
+            <span class="result-placeholder" id="placeholder">Il risultato apparirà qui</span>
+            <img id="output">
+        </div>
+    </div>
+
+    <!-- PROMPT SECTION -->
+    <div class="prompt-section">
+        <div class="prompt-header">Genera Prompt</div>
+        <div class="prompt-body">
+
+            <div class="field-group">
+                <label>Nome Brand</label>
+                <input type="text" id="nomeBrand" placeholder="es. Acme Studio">
+            </div>
+
+            <div class="field-group">
+                <label>Simbolo <span class="field-opt">(opzionale)</span></label>
+                <input type="text" id="simbolo" placeholder="es. una foglia stilizzata">
+            </div>
+
+            <button class="btn btn-blue" onclick="generatePrompt()">Genera Prompt</button>
+
+            <div class="prompt-output-box" id="promptOutput"></div>
+
+            <div class="prompt-actions" id="promptActions">
+                <button class="btn-sm btn-sm-gray" onclick="copyPrompt(this)">Copia Prompt</button>
+                <button class="btn-sm btn-sm-gray" onclick="copyReferenceFromPrompt(this)">Copia Reference</button>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+    let highResBlob = null;
+
+    const slider = document.getElementById('thresholdSlider');
+    const valLabel = document.getElementById('thresholdVal');
+    slider.addEventListener('input', () => { valLabel.textContent = slider.value; });
+
+    function showFileName(name) {
+        document.getElementById('loadedName').textContent = name;
+        document.getElementById('fileLoaded').style.display = 'block';
+    }
+
+    document.getElementById('fileInput').addEventListener('change', function() {
+        if (this.files.length) showFileName(this.files[0].name);
+    });
+
+    const dropZone = document.getElementById('dropZone');
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (file) { document.getElementById('fileInput').files = e.dataTransfer.files; showFileName(file.name); processImage(); }
+    });
+
+    function otsuThreshold(gray) {
+        const hist = new Array(256).fill(0);
+        const N = gray.length;
+        for (let i = 0; i < N; i++) hist[gray[i]]++;
+        let total = 0;
+        for (let i = 0; i < 256; i++) total += i * hist[i];
+        let sumB = 0, wB = 0, max = 0, thr = 128;
+        for (let t = 0; t < 256; t++) {
+            wB += hist[t];
+            if (!wB) continue;
+            const wF = N - wB;
+            if (!wF) break;
+            sumB += t * hist[t];
+            const mB = sumB / wB, mF = (total - sumB) / wF;
+            const b = wB * wF * (mB - mF) ** 2;
+            if (b > max) { max = b; thr = t; }
+        }
+        return thr;
+    }
+
+    function setStatus(msg) { document.getElementById('status').textContent = msg; }
+
+    function processImage() {
+        const fileInput = document.getElementById('fileInput');
+        if (!fileInput.files.length) return alert("Carica prima un'immagine.");
+        setStatus('Elaborazione in corso...');
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const scale = 2, maxDim = 2048;
+                let w = img.width * scale, h = img.height * scale;
+                if (w > maxDim || h > maxDim) {
+                    const r = Math.min(maxDim / w, maxDim / h);
+                    w = Math.round(w * r); h = Math.round(h * r);
+                }
+
+                const canvas = document.createElement('canvas');
+                canvas.width = w; canvas.height = h;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = 'white';
+                ctx.fillRect(0, 0, w, h);
+                ctx.drawImage(img, 0, 0, w, h);
+
+                const imageData = ctx.getImageData(0, 0, w, h);
+                const data = imageData.data;
+
+                const gray = new Uint8Array(w * h);
+                for (let i = 0; i < w * h; i++) {
+                    const idx = i * 4;
+                    gray[i] = Math.round(0.299 * data[idx] + 0.587 * data[idx+1] + 0.114 * data[idx+2]);
+                }
+
+                const manualThr = parseInt(slider.value);
+                const autoThr = otsuThreshold(gray);
+                const threshold = manualThr === 128 ? autoThr : manualThr;
+                setStatus(`Soglia: ${threshold}${manualThr === 128 ? ' (auto)' : ' (manuale)'}`);
+
+                let edgeSum = 0, edgeCount = 0;
+                const step = Math.max(1, Math.floor(w / 50));
+                for (let x = 0; x < w; x += step) {
+                    edgeSum += gray[x]; edgeSum += gray[(h-1)*w+x]; edgeCount += 2;
+                }
+                for (let y = 0; y < h; y += step) {
+                    edgeSum += gray[y*w]; edgeSum += gray[y*w+(w-1)]; edgeCount += 2;
+                }
+                const isDarkBg = (edgeSum / edgeCount) < threshold;
+
+                for (let i = 0; i < w * h; i++) {
+                    const idx = i * 4;
+                    const isLogo = isDarkBg ? gray[i] >= threshold : gray[i] < threshold;
+                    const val = isLogo ? 0 : 255;
+                    data[idx] = data[idx+1] = data[idx+2] = val;
+                    data[idx+3] = 255;
+                }
+                ctx.putImageData(imageData, 0, 0);
+
+                const d = imageData.data;
+                let minX = w, minY = h, maxX = 0, maxY = 0, found = false;
+                for (let y = 0; y < h; y++) {
+                    for (let x = 0; x < w; x++) {
+                        if (d[(y*w+x)*4] < 128) {
+                            if (x < minX) minX = x; if (x > maxX) maxX = x;
+                            if (y < minY) minY = y; if (y > maxY) maxY = y;
+                            found = true;
+                        }
+                    }
+                }
+
+                let finalCanvas = canvas;
+                if (found) {
+                    const pad = Math.round(Math.max(w, h) * 0.03);
+                    const cx = Math.max(0, minX - pad), cy = Math.max(0, minY - pad);
+                    const cw = Math.min(w, maxX + pad) - cx, ch = Math.min(h, maxY + pad) - cy;
+                    const cropped = document.createElement('canvas');
+                    cropped.width = cw; cropped.height = ch;
+                    const cctx = cropped.getContext('2d');
+                    cctx.fillStyle = 'white';
+                    cctx.fillRect(0, 0, cw, ch);
+                    cctx.drawImage(canvas, cx, cy, cw, ch, 0, 0, cw, ch);
+                    finalCanvas = cropped;
+                }
+
+                finalCanvas.toBlob(blob => {
+                    highResBlob = blob;
+                    setStatus(`✓ Pronto — ${finalCanvas.width}×${finalCanvas.height}px`);
+                    document.getElementById('btnReference').disabled = false;
+                }, 'image/png');
+
+                const outImg = document.getElementById('output');
+                outImg.src = finalCanvas.toDataURL('image/png');
+                outImg.style.display = 'block';
+                document.getElementById('placeholder').style.display = 'none';
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+    }
+
+    async function copyReference(btn) {
+        if (!highResBlob) return;
+        try {
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': highResBlob })]);
+            flash(btn, 'Copiata ✓');
+        } catch (e) { alert('Errore: ' + e.message); }
+    }
+
+    function generatePrompt() {
+        const brand = document.getElementById('nomeBrand').value.trim();
+        const simbolo = document.getElementById('simbolo').value.trim();
+
+        if (!brand) {
+            const inp = document.getElementById('nomeBrand');
+            inp.style.borderColor = '#2979ff';
+            inp.focus();
+            setTimeout(() => { inp.style.borderColor = ''; }, 1400);
+            return;
+        }
+
+        let prompt = `Generami un logo con questo stesso identico stile e tono di voce della reference, con la scritta "${brand}"`;
+        if (simbolo) prompt += ` e il simbolo che rappresenta ${simbolo}`;
+        prompt += `. Devo averlo nero su sfondo bianco, in altissima risoluzione e con bordi smooth.`;
+
+        const out = document.getElementById('promptOutput');
+        out.textContent = prompt;
+        out.classList.add('visible');
+        document.getElementById('promptActions').classList.add('visible');
+    }
+
+    async function copyPrompt(btn) {
+        const text = document.getElementById('promptOutput').textContent;
+        if (!text) return;
+        await navigator.clipboard.writeText(text);
+        flash(btn, 'Copiato ✓');
+    }
+
+    async function copyReferenceFromPrompt(btn) {
+        if (!highResBlob) return alert("Prima converti un'immagine con il pulsante Converti.");
+        try {
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': highResBlob })]);
+            flash(btn, 'Copiata ✓');
+        } catch (e) { alert('Errore: ' + e.message); }
+    }
+
+    function flash(btn, msg) {
+        const orig = btn.textContent;
+        btn.textContent = msg;
+        btn.style.color = '#2979ff';
+        setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 1800);
+    }
+</script>
+</body>
+</html>
