@@ -1,1 +1,50 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ziply - Vettorializzatore</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
 
+    <main class="container">
+        <header class="main-header">
+            <span class="brand">Ziply</span>
+            <span class="tool-name">Vettorializzatore</span>
+        </header>
+
+        <section class="top-row">
+            <div id="drop" class="drop-zone">
+                <input type="file" id="imageInput" accept="image/*" hidden>
+                <div class="drop-content">
+                    <h2 id="imageSelect">Carica Immagine</h2>
+                    <p class="drag-text">Drag and drop</p>
+                    <p class="formats">PNG · JPG · WebP · GIF · BMP</p>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button id="run" class="btn btn-primary">Vettorializza</button>
+                <a id="save" class="btn btn-secondary">Esporta SVG</a>
+            </div>
+        </section>
+
+        <hr class="divider">
+
+        <section class="result-section">
+            <div class="preview-card">
+                <div class="card-header">Vettorializzato</div>
+                <div id="svgdiv" class="canvas-area">
+                    <div class="placeholder">
+                        <img src="img/imgvector.svg" alt="icon">
+                        <p>Il risultato vettoriale apparirà qui</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="./script.js"></script>
+</body>
+</html>
