@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ziply — Tools</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0d0f;
+      --surface:   #131316;
+      --border:    rgba(255,255,255,0.07);
+      --accent:    #3b6fff;
+      --accent2:   #00e5c0;
+      --text:      #e8e8ef;
+      --muted:     #555564;
+      --sidebar-w: 260px;
+      --header-h:  56px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── SIDEBAR ─────────────────────────────────────────── */
+    aside {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 32px 20px 24px;
+      gap: 0;
+      position: relative;
+      z-index: 10;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 40px;
+      text-decoration: none;
+    }
+    .logo img {
+      height: 32px;
+      width: auto;
+      object-fit: contain;
+    }
+    .logo-fallback {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 20px;
+      color: var(--text);
+      letter-spacing: -0.5px;
+    }
+    .logo-fallback span { color: var(--accent); }
+
+    .nav-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      font-weight: 400;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+      padding-left: 4px;
+    }
+
+    nav {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    nav a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      transition: all 0.18s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    nav a::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, rgba(59,111,255,0.08), transparent);
+      opacity: 0;
+      transition: opacity 0.18s;
+    }
+
+    nav a:hover { color: var(--text); }
+    nav a:hover::before { opacity: 1; }
+
+    nav a.active {
+      color: var(--text);
+      background: rgba(59,111,255,0.12);
+    }
+    nav a.active::before { opacity: 1; }
+    nav a.active .nav-dot { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+
+    .nav-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--muted);
+      flex-shrink: 0;
+      transition: all 0.18s;
+    }
+
+    .nav-icon {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      opacity: 0.6;
+      transition: opacity 0.18s;
+    }
+    nav a.active .nav-icon,
+    nav a:hover .nav-icon { opacity: 1; }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+    }
+    .sidebar-footer p {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .sidebar-footer span { color: var(--accent2); }
+
+    /* ── MAIN ────────────────────────────────────────────── */
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+
+    /* ── FRAME CONTAINER ─────────────────────────────────── */
+    .frames {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tool-frame {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .tool-frame.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .tool-frame iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: var(--bg);
+    }
+
+    /* ── WELCOME SCREEN ──────────────────────────────────── */
+    .welcome {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      opacity: 1;
+      transition: opacity 0.3s ease;
+      pointer-events: all;
+    }
+    .welcome.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .welcome-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      max-width: 720px;
+      width: 100%;
+      padding: 0 32px;
+    }
+
+    .welcome-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px 24px;
+      cursor: pointer;
+      transition: all 0.22s ease;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+    .welcome-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.3s ease;
+    }
+    .welcome-card:hover {
+      border-color: rgba(59,111,255,0.3);
+      transform: translateY(-3px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    }
+    .welcome-card:hover::after { transform: scaleX(1); }
+
+    .card-num {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.1em;
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.2;
+    }
+    .card-desc {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .welcome-heading {
+      font-size: 13px;
+      font-family: 'DM Mono', monospace;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    /* ── LOADING BAR ─────────────────────────────────────── */
+    .loading-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.4s ease;
+      z-index: 999;
+    }
+    .loading-bar.active { transform: scaleX(0.7); }
+    .loading-bar.done   { transform: scaleX(1); transition: transform 0.15s, opacity 0.3s 0.2s; opacity: 0; }
+  </style>
+</head>
+<body>
+
+<div class="loading-bar" id="loadingBar"></div>
+
+<!-- ── SIDEBAR ── -->
+<aside>
+  <a class="logo" href="#">
+    <img src="img/ziplylogo.png" alt="Ziply" onerror="this.style.display='none'; document.querySelector('.logo-fallback').style.display='block'"/>
+    <div class="logo-fallback" style="display:none"><span>Ziply</span></div>
+  </a>
+
+  <div class="nav-label">Tools</div>
+
+  <nav>
+    <a href="#prompt-generator" data-tool="prompt-generator" onclick="switchTool(event, 'prompt-generator')">
+      <svg class="nav-icon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M3 4h12M3 8h8M3 12h5" stroke-linecap="round"/>
+        <circle cx="14.5" cy="11.5" r="2.5"/>
+        <path d="M16.5 13.5L18 15" stroke-linecap="round"/>
+      </svg>
+      Prompt Generator
+    </a>
+    <a href="#vettorializzatore" data-tool="vettorializzatore" onclick="switchTool(event, 'vettorializzatore')">
+      <svg class="nav-icon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M3 15l4-4 3 3 5-7" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="3" cy="15" r="1.5" fill="currentColor" stroke="none"/>
+        <circle cx="16" cy="4" r="1.5" fill="currentColor" stroke="none"/>
+      </svg>
+      Vettorializzatore
+    </a>
+    <a href="#brandbook" data-tool="brandbook" onclick="switchTool(event, 'brandbook')">
+      <svg class="nav-icon" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="3" y="2" width="12" height="14" rx="2"/>
+        <path d="M6 6h6M6 9h6M6 12h4" stroke-linecap="round"/>
+      </svg>
+      Brand Book
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <p>Ziply Tools <span>v1.0</span><br/>Single-page workspace</p>
+  </div>
+</aside>
+
+<!-- ── MAIN ── -->
+<main>
+  <div class="frames">
+
+    <!-- WELCOME -->
+    <div class="welcome" id="welcomeScreen">
+      <p class="welcome-heading">Scegli un tool</p>
+      <div class="welcome-grid">
+        <div class="welcome-card" onclick="switchToolById('prompt-generator')">
+          <div class="card-num">01</div>
+          <div class="card-title">Prompt Generator</div>
+          <div class="card-desc">Genera prompt ottimizzati per AI in pochi secondi.</div>
+        </div>
+        <div class="welcome-card" onclick="switchToolById('vettorializzatore')">
+          <div class="card-num">02</div>
+          <div class="card-title">Vettorializzatore</div>
+          <div class="card-desc">Converti immagini raster in vettoriali SVG di qualità.</div>
+        </div>
+        <div class="welcome-card" onclick="switchToolById('brandbook')">
+          <div class="card-num">03</div>
+          <div class="card-title">Brand Book</div>
+          <div class="card-desc">Costruisci e gestisci la tua identità di brand.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOOL FRAMES (lazy-loaded) -->
+    <div class="tool-frame" id="frame-prompt-generator">
+      <iframe title="Prompt Generator" id="iframe-prompt-generator" src="about:blank"></iframe>
+    </div>
+
+    <div class="tool-frame" id="frame-vettorializzatore">
+      <iframe title="Vettorializzatore" id="iframe-vettorializzatore" src="about:blank"></iframe>
+    </div>
+
+    <div class="tool-frame" id="frame-brandbook">
+      <iframe title="Brand Book" id="iframe-brandbook" src="about:blank"></iframe>
+    </div>
+
+  </div>
+</main>
+
+<script>
+  const tools = {
+    'prompt-generator': {
+      src: 'TOOL_PROMPT_GENERATOR/index.html',
+      label: 'Prompt Generator',
+      hint: 'Genera prompt ottimizzati per modelli AI'
+    },
+    'vettorializzatore': {
+      src: 'TOOL_VECTORIALIZER/index.html',
+      label: 'Vettorializzatore',
+      hint: 'Converti immagini raster in SVG vettoriali'
+    },
+    'brandbook': {
+      src: 'TOOL_BRANDBOOK/index.html',
+      label: 'Brand Book',
+      hint: 'Crea e gestisci la tua identità di brand'
+    }
+  };
+
+  const loaded = {};
+  let current = null;
+
+  const loadingBar = document.getElementById('loadingBar');
+
+  function startLoad() {
+    loadingBar.className = 'loading-bar active';
+  }
+  function endLoad() {
+    loadingBar.className = 'loading-bar done';
+    setTimeout(() => { loadingBar.className = 'loading-bar'; }, 600);
+  }
+
+  function switchTool(e, id) {
+    if (e) e.preventDefault();
+    switchToolById(id);
+  }
+
+  function switchToolById(id) {
+    if (current === id) return;
+    current = id;
+
+    // Nav highlight
+    document.querySelectorAll('nav a').forEach(a => {
+      a.classList.toggle('active', a.dataset.tool === id);
+    });
+
+    // Hide welcome
+    document.getElementById('welcomeScreen').classList.add('hidden');
+
+    // Show frame
+    document.querySelectorAll('.tool-frame').forEach(f => f.classList.remove('visible'));
+    document.getElementById('frame-' + id).classList.add('visible');
+
+    // Lazy-load iframe
+    if (!loaded[id]) {
+      loaded[id] = true;
+      startLoad();
+      const iframe = document.getElementById('iframe-' + id);
+      iframe.addEventListener('load', endLoad, { once: true });
+      iframe.src = tools[id].src;
+    }
+
+    // Update URL hash without scrolling
+    history.replaceState(null, '', '#' + id);
+  }
+
+  // Handle direct URL with hash on load
+  window.addEventListener('DOMContentLoaded', () => {
+    const hash = location.hash.replace('#', '');
+    if (hash && tools[hash]) {
+      switchToolById(hash);
+    }
+  });
+</script>
+</body>
+</html>
